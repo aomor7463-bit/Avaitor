@@ -1,0 +1,74 @@
+<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Support - Aviator</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+body{margin:0;background:#080c1e;color:#fff;font-family:sans-serif}
+.box{max-width:480px;margin:auto;padding:15px}
+.top{background:#121735;padding:14px;text-align:center;font-weight:900;border-bottom:2px solid #00a8ff;position:sticky;top:0;z-index:10}
+.card{background:#121735;border:1px solid #333;border-radius:14px;padding:14px;margin-bottom:12px}
+.input{width:100%;padding:12px;border-radius:10px;border:1px solid #333;background:#080c1e;color:#fff;margin-bottom:10px;box-sizing:border-box}
+.btn{width:100%;padding:13px;border-radius:12px;border:none;font-weight:900;background:#00a8ff;color:#fff;cursor:pointer}
+.msg{padding:10px 14px;border-radius:14px;margin-bottom:8px;max-width:80%;font-size:14px;line-height:1.3}
+.msg.user{background:#00a8ff;color:#fff;margin-left:auto;border-bottom-right-radius:4px}
+.msg.admin{background:#1d224d;border:1px solid #333;color:#fff;margin-right:auto;border-bottom-left-radius:4px}
+.chatBox{height:380px;overflow:auto;background:#0a0e1e;border-radius:12px;padding:10px;border:1px solid #222;margin-bottom:10px}
+.small{font-size:11px;color:#aaa}
+</style></head><body>
+<div class="top">💬 Aviator Support Center</div>
+<div class="box">
+<div class="card">
+<h3 style="margin:0 0 10px 0;color:#00a8ff">📩 সাপোর্টে মেসেজ করুন</h3>
+<input id="name" class="input" placeholder="আপনার নাম">
+<input id="phone" class="input" placeholder="ফোন / bKash নাম্বার">
+<div class="chatBox" id="chatBox"><div class="small" style="text-align:center;padding:20px">ফোন নাম্বার দিন, আপনার মেসেজ এখানে দেখাবে...</div></div>
+<textarea id="message" class="input" rows="3" placeholder="আপনার সমস্যা লিখুন... যেমন: ডিপোজিট করেছি, টাকা এড হয়নি"></textarea>
+<button class="btn" onclick="sendMsg()">📤 মেসেজ পাঠান</button>
+<div style="text-align:center;font-size:11px;color:#666;margin-top:10px">Admin 5-10 মিনিটের মধ্যে রিপ্লাই দিবে</div>
+</div>
+</div>
+<script>
+const cfg={apiKey:"AIzaSyABNl-z1-x4dmJfNHoZVQHqRE5XnRHeB10",authDomain:"omor-7f5b7.firebaseapp.com",databaseURL:"https://omor-7f5b7-default-rtdb.firebaseio.com",projectId:"omor-7f5b7",storageBucket:"omor-7f5b7.firebasestorage.app",messagingSenderId:"170819945184",appId:"1:170819945184:web:4b7a0c2e5d8f9a0b1c2d3e"};
+firebase.initializeApp(cfg); const db=firebase.database();
+let currentPhone=null, listener=null;
+
+function renderMsgs(msgs){
+  let box=document.getElementById('chatBox'); box.innerHTML='';
+  msgs.forEach(m=>{
+    let div=document.createElement('div'); div.className='msg '+(m.sender=='admin'?'admin':'user');
+    div.innerHTML=`${m.text}<br><span style="font-size:9px;opacity:0.6">${m.timeStr||''}</span>`;
+    box.appendChild(div);
+  });
+  box.scrollTop=box.scrollHeight;
+}
+
+function loadChat(phone){
+  if(!phone) return;
+  if(listener) listener.off();
+  listener=db.ref('supportChats/'+phone);
+  listener.on('value',s=>{
+    if(!s.exists()){document.getElementById('chatBox').innerHTML='<div class="small" style="text-align:center">নতুন চ্যাট শুরু করুন</div>'; return;}
+    let data=s.val(); let msgs=data.messages?Object.values(data.messages):[];
+    msgs.sort((a,b)=>a.time-b.time);
+    renderMsgs(msgs);
+  });
+}
+
+document.getElementById('phone').addEventListener('change',()=>{
+  let ph=document.getElementById('phone').value.trim();
+  if(ph){currentPhone=ph; loadChat(ph);}
+});
+
+function sendMsg(){
+  let name=document.getElementById('name').value.trim();
+  let phone=document.getElementById('phone').value.trim();
+  let text=document.getElementById('message').value.trim();
+  if(!phone || !text) return alert('ফোন ও মেসেজ লিখুন');
+  if(!name) name='User';
+  currentPhone=phone;
+  let msgObj={sender:'user', name:name, text:text, time:Date.now(), timeStr:new Date().toLocaleString()};
+  db.ref('supportChats/'+phone+'/info').set({name:name, phone:phone, lastUpdate:Date.now()});
+  db.ref('supportChats/'+phone+'/messages').push(msgObj);
+  document.getElementById('message').value='';
+  loadChat(phone);
+  alert('✅ মেসেজ পাঠানো হয়েছে! Admin রিপ্লাই দিলে এখানেই দেখতে পাবেন');
+}
+</script></body></html>
